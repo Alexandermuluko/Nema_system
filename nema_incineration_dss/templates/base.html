@@ -1,0 +1,75 @@
+{% load static %}
+{% load core_tags %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}NEMA Incineration DSS{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261003-6">
+</head>
+<body>
+{% include "partials/site_nav.html" %}
+{% if request.user.is_authenticated and request.resolver_match.url_name != 'home' %}
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand-mini">🌿 <span>nema</span></div>
+    {% if request.user.is_superuser or request.user.profile.role == 'ADMINISTRATOR' %}
+      <div class="side-section">ADMINISTRATION</div>
+      <a href="{% url 'admin_dashboard' %}">▦ Dashboard</a>
+      <div class="side-section">USER MANAGEMENT</div>
+      <a href="{% url 'users' %}">♙ Environmental Officers</a>
+      <a href="{% url 'user_activity' %}">♙ User Activity</a>
+      <div class="side-section">DATA MANAGEMENT</div>
+      <a href="{% url 'admin_datasets' %}">▤ Datasets / Processing History</a>
+      <div class="side-section">MACHINE LEARNING</div>
+      <a href="{% url 'models' %}">◆ Models / Evaluation</a>
+      <a href="{% url 'models' %}">◆ Model Training</a>
+      <div class="side-section">REPORTS & SYSTEM</div>
+      <a href="{% url 'admin_reports' %}">▧ Generated Reports</a>
+      <a href="{% url 'system_settings' %}">⚙ System Settings</a>
+      <a href="{% url 'audit_log' %}">◷ Audit Log</a>
+    {% else %}
+      <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">⌂ Officer Dashboard</a>
+      <div class="side-section">WORKFLOW</div>
+      {% with w=current_workflow %}
+      <a href="{% url 'upload' %}" class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">{% if w and w.completed_stage >= 0 %}✓{% elif not w or w.completed_stage < 0 %}●{% else %}○{% endif %} 1. Upload Dataset</a>
+      <a href="{% url 'data_preview' %}" class="{% if request.resolver_match.url_name == 'data_preview' %}active{% endif %}">{% if w and w.completed_stage >= 1 %}✓{% elif w and w.completed_stage == 0 %}●{% else %}○{% endif %} 2. Data Preview</a>
+      <a href="{% url 'preprocess' %}" class="{% if request.resolver_match.url_name == 'preprocess' %}active{% endif %}">{% if w and w.completed_stage >= 2 %}✓{% elif w and w.completed_stage == 1 %}●{% else %}○{% endif %} 3. Preprocessing</a>
+      <a href="{% url 'predict' %}" class="{% if request.resolver_match.url_name == 'predict' %}active{% endif %}">{% if w and w.completed_stage >= 3 %}✓{% elif w and w.completed_stage == 2 %}●{% else %}○{% endif %} 4. Prediction</a>
+      <a href="{% url 'prediction_results' %}" class="{% if request.resolver_match.url_name == 'prediction_results' %}active{% endif %}">{% if w and w.completed_stage >= 4 %}✓{% elif w and w.completed_stage == 3 %}●{% else %}○{% endif %} 5. Results</a>
+      <a href="{% url 'visualize' %}" class="{% if request.resolver_match.url_name == 'visualize' %}active{% endif %}">{% if w and w.completed_stage >= 5 %}✓{% elif w and w.completed_stage == 4 %}●{% else %}○{% endif %} 6. Visualization</a>
+      <a href="{% url 'reports' %}" class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">{% if w and w.completed_stage >= 6 %}✓{% elif w and w.completed_stage == 5 %}●{% else %}○{% endif %} 7. Reports</a>
+      {% endwith %}
+      <div class="side-section">HISTORY</div>
+      <a href="{% url 'history' %}">◴ Prediction History</a>
+      <a href="{% url 'reports' %}">▧ Reports</a>
+    {% endif %}
+    <div class="side-section">ACCOUNT</div>
+    <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">♙ Profile</a>
+    <a href="{% url 'logout' %}">↪ Logout</a>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="page-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <nav class="app-top-links" aria-label="Application navigation">
+        <a href="{% url 'about' %}">About</a>
+        <a href="{% url 'contact' %}">Contact</a>
+        {% if request.user.is_superuser or request.user.profile.role == 'ADMINISTRATOR' %}<a href="{% url 'admin_dashboard' %}">Admin</a>{% endif %}
+        <a href="{% url 'profile' %}">{{ request.user.username }}</a>
+        <a href="{% url 'logout' %}">Logout</a>
+      </nav>
+    </header>
+    <div class="content">
+      {% if workflow_breadcrumbs %}<nav class="workflow-breadcrumb" aria-label="Workflow breadcrumb">{% for crumb in workflow_breadcrumbs %}{% if not forloop.first %}<span aria-hidden="true">›</span>{% endif %}{% if crumb.current %}<strong aria-current="step">{{ crumb.label }}</strong>{% else %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% endif %}{% endfor %}</nav>{% endif %}
+      {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% else %}
+{% for message in messages %}<div class="message {{ message.tags }} public-message">{{ message }}</div>{% endfor %}
+{% block public_content %}{% endblock %}
+{% endif %}
+</body>
+</html>

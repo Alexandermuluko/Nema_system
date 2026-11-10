@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}About - NEMA Incineration DSS{% endblock %}
+{% block page_title %}About{% endblock %}
+{% block content %}{% include "partials/about_content.html" %}{% endblock %}
+{% block public_content %}
+<main class="public-info"><div class="stepbar">About the system</div>{% include "partials/about_content.html" %}</main>
+{% endblock %}

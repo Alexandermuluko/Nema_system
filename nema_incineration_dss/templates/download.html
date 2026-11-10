@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block page_title %}Download / Export Report{% endblock %}
+{% block content %}
+<div class="stepbar"><b>11</b> Download / Export Report</div>
+<div class="panel narrow" style="text-align:center">
+<div style="font-size:60px;color:#1dbb61">✓</div>
+<h2>Report Generated Successfully!</h2>
+<p>What would you like to do?</p>
+<div class="button-row" style="justify-content:center"><a class="btn primary" href="{% url 'download_pdf' report.id %}">Download PDF</a><a class="btn outline" href="{% url 'download_excel' report.id %}">Download Excel</a><a class="btn outline" href="{% url 'reports' %}">Back to Reports</a></div>
+</div>
+{% endblock %}

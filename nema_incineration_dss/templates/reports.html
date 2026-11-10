@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block page_title %}Generate Report{% endblock %}
+{% block content %}
+<div class="stepbar"><b>9</b> Generate Report</div>
+<div class="panel">
+<form method="post" action="{% url 'generate_report' %}">{% csrf_token %}
+<label>Report Title</label><input name="title" value="Incineration Prediction Report">
+<label>Select Report Type</label><select name="report_type"><option value="SUMMARY">Prediction Summary Report</option><option value="MONITORING">Environmental Monitoring Report</option></select>
+<div class="date-row"><label>Date From<input type="date" name="date_from"></label><label>Date To<input type="date" name="date_to"></label></div>
+<label>Include Sections</label>
+<div class="feature-box"><label><input type="checkbox" name="sections" value="prediction" checked> Prediction Summary</label><label><input type="checkbox" name="sections" value="visualization" checked> Visualization Charts</label><label><input type="checkbox" name="sections" value="data" checked> Data Summary</label><label><input type="checkbox" name="sections" value="preprocessing" checked> Preprocessing Summary</label></div>
+<div class="button-row"><a class="btn outline" href="{% url 'visualize' %}">Back to Visualization</a><button class="btn primary">Generate Report</button></div>
+</form>
+</div>
+<div class="panel"><h3>Recent Reports</h3>{% for r in reports %}<div class="activity"><a href="{% url 'report_preview' r.id %}">{{ r.title }}</a><small>{{ r.generated_at }}</small></div>{% empty %}<div class="empty">No reports generated for this workflow.</div>{% endfor %}</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block page_title %}System Settings{% endblock %}
+{% block content %}
+<div class="stepbar">Administrator / System / Settings</div>
+<div class="panel narrow"><h2>Application Configuration</h2><table>
+<tr><th>Database</th><td>{{ database_engine }}</td></tr>
+<tr><th>Application timezone</th><td>{{ timezone }}</td></tr>
+<tr><th>Debug mode</th><td>{% if debug_enabled %}Enabled — disable before production deployment{% else %}Disabled{% endif %}</td></tr>
+<tr><th>Maximum upload</th><td>{{ upload_limit_mb }} MB</td></tr>
+</table><p class="note">Secrets and credentials are intentionally not displayed in the administrator interface.</p></div>
+{% endblock %}

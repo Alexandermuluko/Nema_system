@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block page_title %}Edit Environmental Officer{% endblock %}
+{% block content %}
+<div class="stepbar">Administrator / User Management / Edit Officer</div>
+<div class="panel narrow"><h2>{{ officer.username }}</h2><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn primary">Save Changes</button><a class="btn outline" href="{% url 'users' %}">Cancel</a></form></div>
+{% endblock %}

@@ -1,0 +1,17 @@
+NEMA INCINERATION DSS - DATA QUALITY REPORT
+
+Source file: output.csv
+Packaged working file: data/output.csv
+
+Columns: 22
+Clean records: 314,924
+Duplicate records: 0
+Missing values in packaged file: 0
+Time range: 2024-09-26 12:40:40 to 2024-10-10 23:35:20
+
+IMPORTANT
+The uploaded source CSV contains a corrupted section beginning immediately after the record at 2024-10-10 23:35:20. Subsequent rows have inconsistent field counts, malformed numeric strings, embedded fragments of other records, and non-text byte sequences. Because those rows cannot be reconstructed reliably from the source, they are excluded from the packaged working dataset.
+
+This is a data-integrity cleanup, not an invention of values. No missing measurements were imputed when creating the packaged CSV. The application's preprocessing pipeline may handle missing values if a future upload contains them.
+
+The process-tag meanings/units are not established by the proposal. The column mapping therefore remains configurable in config/column_mapping.json. Do not label a tag as furnace temperature, oxygen concentration, airflow, fuel consumption, etc. until the plant data dictionary/source documentation confirms the mapping.

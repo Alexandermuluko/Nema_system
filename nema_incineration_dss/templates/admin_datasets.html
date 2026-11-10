@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block page_title %}Dataset Management{% endblock %}
+{% block content %}
+<div class="stepbar">Administrator / Data Management / Datasets</div>
+<div class="panel"><div class="table-scroll"><table><thead><tr><th>Dataset</th><th>Owner</th><th>Uploaded</th><th>Records</th><th>Columns</th><th>Validation</th><th>Processing</th><th>Prediction</th></tr></thead><tbody>
+{% for item in datasets %}{% with d=item.dataset %}<tr><td>{{ d.name }}</td><td>{{ d.uploaded_by.username|default:"—" }}</td><td>{{ d.uploaded_at|date:"d/m/Y H:i" }}</td><td>{{ d.row_count }}</td><td>{{ d.column_count }}</td><td>{{ d.get_validation_status_display }}</td><td>{{ item.processing_status }}</td><td>{{ item.prediction_status }}</td></tr>{% endwith %}{% empty %}<tr><td colspan="8">No datasets uploaded.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

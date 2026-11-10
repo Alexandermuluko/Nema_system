@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load core_tags %}
+{% block page_title %}Uploaded Data / Data Preview{% endblock %}
+{% block content %}
+<div class="stepbar"><b>4</b> Uploaded Data / Data Preview</div>
+<div class="panel">
+<h2>Data Preview</h2>
+<p><b>File Name:</b> {{ dataset.name }}</p>
+<p><b>Validation Status:</b> <span class="status">{{ dataset.get_validation_status_display }}</span></p>
+{% if dataset.preprocessing_summary.source_recovered %}<p class="message warning">Imported {{ dataset.row_count }} valid rows; {{ dataset.preprocessing_summary.source_records_excluded }} malformed rows were excluded. The uploaded source file remains unchanged.</p>{% endif %}
+<div class="metrics-row"><div>Total Records <b>{{ dataset.row_count }}</b></div><div>Total Columns <b>{{ dataset.column_count }}</b></div></div>
+<div class="table-scroll"><table><thead><tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr></thead><tbody>
+{% for row in rows %}<tr>{% for c in columns %}<td>{{ row|get_item:c }}</td>{% endfor %}</tr>{% endfor %}
+</tbody></table></div>
+<div class="button-row"><a class="btn outline" href="{% url 'upload' %}">Back</a><a class="btn primary" href="{% url 'preprocess' %}">Proceed to Preprocess</a></div>
+</div>
+{% endblock %}

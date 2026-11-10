@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="welcome">Welcome,<br><strong>{{ request.user.get_full_name|default:request.user.username }}</strong><span>{% now "d M Y" %}</span></div>
+<div class="panel workflow-panel">
+  <div class="panel-heading"><h3>Current Workflow</h3><span>Step {{ current_stage|add:1 }} of 8</span></div>
+  <div class="workflow-progress">
+    {% for label in workflow_labels %}<span class="workflow-step">{% if workflow.completed_stage >= forloop.counter0 %}✓{% elif current_stage == forloop.counter0 %}●{% else %}○{% endif %} {{ label }}</span>{% endfor %}
+  </div>
+  <div class="button-row"><span class="muted">Continue with: {{ workflow_step_label }}</span><a class="btn primary" href="{% url current_url %}">Continue</a></div>
+</div>
+<div class="cards">
+  <div class="stat blue"><small>Datasets</small><b>{{ datasets }}</b></div>
+  <div class="stat green"><small>Predictions</small><b>{{ predictions }}</b></div>
+  <div class="stat purple"><small>Reports</small><b>{{ reports }}</b></div>
+  <div class="stat orange"><small>Alerts</small><b>{{ alerts }}</b></div>
+</div>
+<div class="panel"><h3>Recent Activity</h3>
+{% for p in recent %}<div class="activity"><span>Prediction for {{ p.target_column }} · {{ p.dataset.name }}</span><small>{{ p.created_at|date:"d M Y H:i" }}</small></div>{% empty %}<div class="empty">No prediction activity yet.</div>{% endfor %}
+</div>
+<div class="quick-grid">
+  <div class="quick">Latest prediction: {% if latest_prediction %}{{ latest_prediction.target_column }} = {{ latest_prediction.predicted_value|floatformat:3 }} · {{ latest_prediction.model.get_algorithm_display }} · R² {{ latest_prediction.evaluation.R2|floatformat:3 }}{% else %}Not generated yet{% endif %}</div>
+  <div class="quick">Latest report: {% if latest_report %}<a href="{% url 'report_preview' latest_report.id %}">{{ latest_report.title }}</a>{% else %}Not generated yet{% endif %}</div>
+</div>
+<div class="quick-grid">
+<a class="quick" href="{% url 'upload' %}">Upload historical incineration data →</a>
+<a class="quick" href="{% url 'predict' %}">Configure a prediction →</a>
+<a class="quick" href="{% url 'reports' %}">Generate monitoring report →</a>
+</div>
+{% endblock %}

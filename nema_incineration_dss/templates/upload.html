@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block page_title %}Upload Dataset{% endblock %}
+{% block content %}
+<div class="stepbar"><b>3</b> Upload Dataset</div>
+<div class="panel narrow"><h2>Upload Historical Incineration Data</h2><p class="muted">Upload CSV or Excel historical operational data.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  {{ form.as_p }}
+  <div class="dropbox">⇧<br><span>Drag & drop file here</span><br><button class="btn outline" type="button" onclick="document.querySelector('input[type=file]').click()">Browse Files</button></div>
+  <p class="note">Maximum file size: 200 MB. The supplied working dataset is available as <b>data/output.csv</b>.</p>
+  <div class="button-row"><a class="btn outline" href="{% url 'dashboard' %}">Back to Dashboard</a><button class="btn primary">Upload Dataset</button></div>
+</form></div>
+{% endblock %}

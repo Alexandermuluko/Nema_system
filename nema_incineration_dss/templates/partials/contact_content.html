@@ -1,0 +1,12 @@
+<div class="panel narrow">
+  <h2>Contact and support</h2>
+  <p>For account access, user-role changes, or application support, contact your system administrator through your institution’s approved support channel.</p>
+  <p>For questions about process-tag labels or operational interpretation, consult the responsible plant and environmental personnel. Do not treat model output as an equipment-control instruction.</p>
+  <div class="button-row">
+    {% if request.user.is_authenticated %}
+      <a class="btn primary" href="{% url 'dashboard' %}">Back to Dashboard</a>
+    {% else %}
+      <a class="btn primary" href="{% url 'login' %}">Go to Login</a>
+    {% endif %}
+  </div>
+</div>

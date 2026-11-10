@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block page_title %}Prediction Settings{% endblock %}
+{% block content %}
+<div class="stepbar"><b>6</b> Prediction Settings</div>
+<div class="panel">
+<form method="post">{% csrf_token %}
+<label>Select Machine Learning Model</label>{{ form.algorithm }}
+<label>Target Parameter to Predict</label>{{ form.target_column }}
+<p class="note">The target is the value the model learns to estimate. Dataset tags retain their source names unless their meanings are verified in the configured column mapping.</p>
+<label>Input Features</label>
+<div class="feature-box">{{ form.feature_columns }}</div>
+<p class="note">Input features are the selected dataset columns used to estimate the target. Do not select the target itself as an input.</p>
+<div class="button-row"><a class="btn outline" href="{% url 'preprocess' %}">Back to Preprocessing</a><button class="btn primary">Run Prediction</button></div>
+</form>
+</div>
+{% endblock %}

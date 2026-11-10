@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block page_title %}Data Preprocessing{% endblock %}
+{% block content %}
+<div class="stepbar"><b>5</b> Data Preprocessing</div>
+<div class="panel">
+<h2>Preprocessing Steps</h2>
+<div class="check-list">
+<div>{{ summary.steps.missing_values.status }} <b>Missing Value Handling</b><span>{{ summary.steps.missing_values.detail }}</span></div>
+<div>{{ summary.steps.duplicates.status }} <b>Duplicate Detection</b><span>{{ summary.steps.duplicates.detail }}</span></div>
+<div>{{ summary.steps.outliers.status }} <b>Outlier Detection</b><span>{{ summary.steps.outliers.detail }}</span></div>
+<div>{{ summary.steps.scaling.status }} <b>Feature Scaling</b><span>{{ summary.steps.scaling.detail }}</span></div>
+<div>{{ summary.steps.feature_selection.status }} <b>Feature Selection</b><span>{{ summary.steps.feature_selection.detail }}</span></div>
+<div>{{ summary.steps.validation.status }} <b>Data Validation</b><span>{{ summary.steps.validation.detail }}</span></div>
+</div>
+<div class="metrics-row"><div>Valid input records <b>{{ summary.original_records }}</b></div><div>Malformed source rows excluded <b>{{ summary.source_records_excluded }}</b></div><div>Duplicates removed <b>{{ summary.duplicates_removed }}</b></div><div>Missing handled <b>{{ summary.missing_values_handled }}</b></div><div>Outliers detected <b>{{ summary.outliers_detected }}</b></div><div>Final records <b>{{ summary.rows }}</b></div><div>Selected features <b>{{ summary.selected_features|length }}</b></div></div>
+<div class="button-row"><a class="btn outline" href="{% url 'data_preview' %}">Back to Data Preview</a><a class="btn primary" href="{% url 'predict' %}">Proceed to Prediction →</a></div>
+</div>
+{% endblock %}

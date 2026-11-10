@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block page_title %}Profile{% endblock %}
+{% block content %}
+<div class="stepbar"><b>—</b> Profile</div>
+<div class="panel narrow">
+  <h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
+  <table>
+    <tr><th>Username</th><td>{{ request.user.username }}</td></tr>
+    <tr><th>Email</th><td>{{ request.user.email|default:"—" }}</td></tr>
+    <tr><th>Role</th><td>{{ profile.get_role_display }}</td></tr>
+  </table>
+</div>
+{% endblock %}

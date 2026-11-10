@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block page_title %}Generated Reports{% endblock %}
+{% block content %}
+<div class="stepbar">Administrator / Reports / Generated Reports</div>
+<div class="panel"><div class="table-scroll"><table><thead><tr><th>Title</th><th>Owner</th><th>Dataset</th><th>Model</th><th>Generated</th><th>Format</th></tr></thead><tbody>
+{% for report in reports %}<tr><td>{{ report.title }}</td><td>{{ report.generated_by.username|default:"—" }}</td><td>{{ report.dataset.name|default:"—" }}</td><td>{{ report.model.name|default:"—" }}</td><td>{{ report.generated_at|date:"d/m/Y H:i" }}</td><td>PDF / Excel</td></tr>{% empty %}<tr><td colspan="6">No generated reports.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

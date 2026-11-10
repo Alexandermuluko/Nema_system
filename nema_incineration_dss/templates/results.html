@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block page_title %}Prediction Results{% endblock %}
+{% block content %}
+<div class="stepbar"><b>5</b> Prediction Results</div>
+<div class="panel">
+<h2>Predicted Optimal Parameter</h2>
+<div class="result-big"><span>{{ target }}</span><b>{{ predicted|floatformat:3 }}</b></div>
+<p><b>Dataset:</b> {{ dataset.name }} · <b>Model:</b> {{ algorithm }} · <b>Target:</b> {{ target }}</p>
+<table><tr><th>MAE</th><td>{{ metrics.MAE|floatformat:4 }}</td><th>RMSE</th><td>{{ metrics.RMSE|floatformat:4 }}</td><th>R²</th><td>{{ metrics.R2|floatformat:4 }} ({{ metrics.R2|floatformat:2 }} proportion)</td></tr></table>
+<p class="note">R² is a regression metric showing variance explained, not classification accuracy or a guarantee of operational performance.</p>
+<h3>Actual vs Predicted Evaluation</h3>
+<div class="table-scroll"><table><thead><tr><th>Test Record</th><th>Actual Value</th><th>Predicted Value</th><th>Difference</th></tr></thead><tbody>
+{% for row in prediction.prediction_rows %}<tr><td>{{ forloop.counter }}</td><td>{{ row.actual|floatformat:4 }}</td><td>{{ row.predicted|floatformat:4 }}</td><td>{{ row.difference|floatformat:4 }}</td></tr>{% empty %}<tr><td colspan="4">No evaluation rows available.</td></tr>{% endfor %}
+</tbody></table></div>
+<div class="button-row"><a class="btn outline" href="{% url 'predict' %}">Back to Prediction Settings</a><a class="btn primary" href="{% url 'visualize' %}">View Visualization</a></div>
+</div>
+{% endblock %}

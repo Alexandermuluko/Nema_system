@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block page_title %}Report Preview{% endblock %}
+{% block content %}
+<div class="stepbar"><b>10</b> Report Preview</div>
+<div class="panel report">
+<div class="nema-logo">🌿 <strong>nema</strong></div>
+<h1>{{ report.title }}</h1>
+<p><b>Dataset:</b> {{ report.content.dataset }}</p>
+<p><b>Total Records:</b> {{ report.content.rows }}</p>
+<p><b>Model:</b> {{ report.content.algorithm }}</p>
+<p><b>Target:</b> {{ report.content.target|default:"Not selected" }}</p>
+<p><b>Input Features:</b> {{ report.content.features|join:", " }}</p>
+<h3>Preprocessing Summary</h3>
+<p>Original records: {{ report.content.preprocessing.original_records }} · Final records: {{ report.content.preprocessing.rows }} · Duplicates removed: {{ report.content.preprocessing.duplicates_removed }} · Missing values handled: {{ report.content.preprocessing.missing_values_handled }}</p>
+<h3>Predicted Parameter</h3>
+<table><tr><th>Parameter</th><th>Predicted Value</th></tr><tr><td>{{ report.content.target|default:"—" }}</td><td>{{ report.content.predicted|default:"—" }}</td></tr></table>
+<h3>Model Evaluation</h3>
+<table>{% for k,v in report.content.metrics.items %}<tr><th>{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}</table>
+<h3>Visualizations</h3>
+<div class="chart-grid">{% for chart in report.content.visualizations %}<figure><img class="chart" src="/media/{{ chart }}" alt="{{ chart }}"><figcaption>{{ chart|cut:"charts/" }}</figcaption></figure>{% empty %}<p>No chart files were recorded.</p>{% endfor %}</div>
+<p class="note">Decision-support output only. This system does not automatically control incineration equipment.</p>
+<div class="button-row"><a class="btn primary" href="{% url 'download_pdf' report.id %}">Download PDF</a><a class="btn outline" href="{% url 'download_excel' report.id %}">Download Excel</a><a class="btn outline" href="{% url 'reports' %}">Back to Reports</a></div>
+</div>
+{% endblock %}

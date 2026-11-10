@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block page_title %}Audit Log{% endblock %}
+{% block content %}
+<div class="stepbar">Administrator / System / Audit Log</div>
+<div class="panel"><div class="table-scroll"><table><thead><tr><th>Date & Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Entity ID</th><th>Details</th></tr></thead><tbody>
+{% for event in events %}<tr><td>{{ event.created_at|date:"d/m/Y H:i:s" }}</td><td>{{ event.actor.username|default:"System" }}</td><td>{{ event.action }}</td><td>{{ event.entity_type }}</td><td>{{ event.entity_id|default:"—" }}</td><td>{{ event.details }}</td></tr>{% empty %}<tr><td colspan="6">No audit events recorded.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

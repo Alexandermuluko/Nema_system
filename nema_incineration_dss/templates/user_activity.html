@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block page_title %}User Activity{% endblock %}
+{% block content %}
+<div class="stepbar">Administrator / User Management / User Activity</div>
+<div class="panel"><h2>Recent Prediction Activity</h2><div class="table-scroll"><table><thead><tr><th>Date & Time</th><th>User</th><th>Dataset</th><th>Model</th><th>Target</th><th>Status</th></tr></thead><tbody>
+{% for p in predictions %}<tr><td>{{ p.created_at|date:"d/m/Y H:i" }}</td><td>{{ p.created_by.username|default:"—" }}</td><td>{{ p.dataset.name }}</td><td>{{ p.model.name|default:"—" }}</td><td>{{ p.target_column }}</td><td>{{ p.status }}</td></tr>{% empty %}<tr><td colspan="6">No prediction activity.</td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="panel"><h2>Recent Dataset Uploads</h2><div class="table-scroll"><table><thead><tr><th>Uploaded</th><th>User</th><th>Dataset</th><th>Records</th><th>Validation</th></tr></thead><tbody>
+{% for d in uploads %}<tr><td>{{ d.uploaded_at|date:"d/m/Y H:i" }}</td><td>{{ d.uploaded_by.username|default:"—" }}</td><td>{{ d.name }}</td><td>{{ d.row_count }}</td><td>{{ d.get_validation_status_display }}</td></tr>{% empty %}<tr><td colspan="5">No dataset uploads.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

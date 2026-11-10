@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="welcome">Welcome,<br><strong>Administrator</strong><span>{% now "d M Y" %}</span></div>
+<div class="cards admin-cards"><div class="stat blue"><small>Users</small><b>{{ users }}</b></div><div class="stat green"><small>Environmental Officers</small><b>{{ officers }}</b></div><div class="stat purple"><small>Datasets</small><b>{{ datasets }}</b></div><div class="stat orange"><small>Models</small><b>{{ models }}</b></div><div class="stat"><small>Reports</small><b>{{ reports }}</b></div></div>
+<div class="panel admin-overview-panel"><h3>System Overview</h3><dl class="admin-overview">
+	<div><dt>Storage Used</dt><dd>{{ storage_used_mb }} MB</dd></div>
+	<div><dt>Last Model Training</dt><dd>{{ last_model.created_at|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+	<div><dt>Active Users</dt><dd>{{ active_users }}</dd></div>
+	<div><dt>Latest Activity</dt><dd>{% if latest_activity %}{{ latest_activity.created_by.username|default:"User" }} · {{ latest_activity.created_at|date:"d/m/Y H:i" }}{% else %}No prediction activity yet{% endif %}</dd></div>
+</dl></div>
+<div class="quick-grid admin-dashboard-actions"><a class="quick" href="{% url 'users' %}">Manage Environmental Officers →</a><a class="quick" href="{% url 'admin_datasets' %}">Inspect datasets →</a><a class="quick" href="{% url 'admin_reports' %}">Review generated reports →</a></div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block page_title %}Model Management{% endblock %}
+{% block content %}
+<div class="stepbar"><b>15</b> Model Management</div>
+<div class="panel"><table><tr><th>Model Name</th><th>Algorithm</th><th>Target</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Training Date</th><th>Status / Action</th></tr>
+{% for m in models %}<tr><td>{{m.name}}</td><td>{{m.get_algorithm_display}}</td><td>{{m.target_column}}</td><td>{{m.metrics.MAE|floatformat:4}}</td><td>{{m.metrics.RMSE|floatformat:4}}</td><td>{{m.metrics.R2|floatformat:3}}</td><td>{{m.created_at|date:"d/m/Y H:i"}}</td><td>{% if m.active %}Active{% else %}Inactive{% endif %}<form method="post" action="{% url 'model_status' m.id %}">{% csrf_token %}<button class="link-button">{% if m.active %}Deactivate{% else %}Activate{% endif %}</button></form></td></tr>{% empty %}<tr><td colspan="8">No models trained yet.</td></tr>{% endfor %}
+</table></div>
+<div class="button-row"><a class="btn outline" href="{% url 'admin_dashboard' %}">Back to Admin Dashboard</a></div>
+{% endblock %}

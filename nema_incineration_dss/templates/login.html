@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Login - NEMA{% endblock %}
+{% block public_content %}
+<div class="login-page">
+  <div class="login-card">
+    <div class="nema-logo">🌿 <strong>nema</strong></div>
+    <h3>National Environment<br>Management Authority</h3>
+    <p class="muted">Sign in to your account</p>
+    <form method="post" action="{% url 'login' %}">{% csrf_token %}
+      <label for="id_username">Username</label><input id="id_username" name="username" autocomplete="username" required>
+      <label for="id_password">Password</label><input id="id_password" name="password" type="password" autocomplete="current-password" required>
+      <label for="id_role">Sign in as</label>
+      <select id="id_role" name="role" required>
+        <option value="ENVIRONMENTAL_OFFICER">Environmental Officer</option>
+        <option value="ADMINISTRATOR">Administrator</option>
+      </select>
+      <button class="btn primary full" type="submit">Sign in</button>
+    </form>
+    <div class="forgot">Forgot password?</div>
+  </div>
+</div>
+{% endblock %}

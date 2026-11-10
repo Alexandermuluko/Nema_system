@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block page_title %}Prediction History{% endblock %}
+{% block content %}
+<div class="stepbar"><b>11</b> Prediction History</div>
+<div class="panel"><table><thead><tr><th>Date & Time</th><th>Dataset</th><th>Model</th><th>Target</th><th>Status</th><th>R²</th><th>RMSE</th><th>Actions</th></tr></thead><tbody>
+{% for item in rows %}{% with p=item.prediction %}<tr><td>{{ p.created_at|date:"d/m/Y H:i" }}</td><td>{{ p.dataset.name }}</td><td>{{ p.model.name|default:"—" }}</td><td>{{ p.target_column }}</td><td><span class="status">{{ p.status }}</span></td><td>{{ p.evaluation.R2|floatformat:3 }}</td><td>{{ p.evaluation.RMSE|floatformat:3 }}</td><td><a href="{% url 'prediction_view' p.id %}">View Results</a>{% if item.report %} · <a href="{% url 'report_preview' item.report.id %}">View Report</a>{% endif %}</td></tr>{% endwith %}{% empty %}<tr><td colspan="8">No history yet.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}
