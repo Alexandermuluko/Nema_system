@@ -15,6 +15,10 @@ from .models import AuditEvent, UserProfile, Workflow
 
 
 class VercelAllowedHostsTests(SimpleTestCase):
+    def test_project_vercel_domain_is_allowed_by_default(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertIn("nema-system.vercel.app", get_allowed_hosts())
+
     def test_vercel_deployment_hosts_are_allowed(self):
         with patch.dict(
             "os.environ",

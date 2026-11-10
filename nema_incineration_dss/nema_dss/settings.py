@@ -14,7 +14,7 @@ def get_allowed_hosts():
     hosts = [
         host.strip()
         for host in os.getenv(
-            "ALLOWED_HOSTS", "127.0.0.1,localhost"
+            "ALLOWED_HOSTS", "127.0.0.1,localhost,nema-system.vercel.app"
         ).split(",")
         if host.strip()
     ]
