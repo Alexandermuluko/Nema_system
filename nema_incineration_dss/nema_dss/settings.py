@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+from urllib.parse import parse_qs, unquote, urlsplit
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -7,7 +8,32 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()]
+
+
+def get_allowed_hosts():
+    hosts = [
+        host.strip()
+        for host in os.getenv(
+            "ALLOWED_HOSTS", "127.0.0.1,localhost"
+        ).split(",")
+        if host.strip()
+    ]
+    for variable in (
+        "VERCEL_URL",
+        "VERCEL_PROJECT_PRODUCTION_URL",
+        "VERCEL_BRANCH_URL",
+    ):
+        value = os.getenv(variable)
+        if value:
+            hostname = urlsplit(
+                value if "://" in value else f"//{value}"
+            ).hostname
+            if hostname:
+                hosts.append(hostname)
+    return list(dict.fromkeys(hosts))
+
+
+ALLOWED_HOSTS = get_allowed_hosts()
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -44,8 +70,39 @@ TEMPLATES = [{
 WSGI_APPLICATION = "nema_dss.wsgi.application"
 ASGI_APPLICATION = "nema_dss.asgi.application"
 
+def postgres_database_from_url(database_url):
+    parsed = urlsplit(database_url)
+    if parsed.scheme not in {"postgres", "postgresql"}:
+        raise ValueError("DATABASE_URL must use the postgres or postgresql scheme.")
+
+    database_name = unquote(parsed.path.lstrip("/"))
+    if not parsed.hostname or not database_name:
+        raise ValueError("DATABASE_URL must include a database name and host.")
+
+    database = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": database_name,
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname,
+        "PORT": parsed.port or "5432",
+    }
+    query = parse_qs(parsed.query)
+    options = {
+        name: query[name][0]
+        for name in ("sslmode", "channel_binding")
+        if query.get(name)
+    }
+    if options:
+        database["OPTIONS"] = options
+    return database
+
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower()
-if DB_ENGINE == "postgresql":
+if DATABASE_URL:
+    DATABASES = {"default": postgres_database_from_url(DATABASE_URL)}
+elif DB_ENGINE == "postgresql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -56,8 +113,10 @@ if DB_ENGINE == "postgresql":
             "PORT": os.getenv("DB_PORT", "5432"),
         }
     }
-else:
+elif DB_ENGINE == "sqlite":
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
+else:
+    raise ValueError("DB_ENGINE must be either 'sqlite' or 'postgresql'.")
 
 AUTH_PASSWORD_VALIDATORS = []
 LANGUAGE_CODE = "en-us"

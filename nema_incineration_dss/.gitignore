@@ -10,3 +10,5 @@ staticfiles/
 *.png
 *.xlsx
 *.pdf
+.neon
+node_modules/

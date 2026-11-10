@@ -67,7 +67,22 @@ Administrators create Environmental Officer accounts from User Management. New a
 
 ## PostgreSQL
 
-Set these variables in `.env`:
+For Neon or another provider that supplies a PostgreSQL connection URL, set
+`DATABASE_URL` in `.env`. Neon setup populates this variable automatically:
+
+    DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+
+When `DATABASE_URL` is set, it takes precedence over `DB_ENGINE` and the
+individual `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, and `DB_PORT`
+settings. Keep the URL secret; do not commit `.env`.
+
+For Vercel deployments, Django adds the deployment, project, and branch
+hostnames supplied by Vercel to `ALLOWED_HOSTS`. Set
+`CSRF_TRUSTED_ORIGINS` in Vercel to the site's full HTTPS origin, for example
+`https://nema-system.vercel.app`, so sign-in and other POST requests pass
+Django's CSRF checks.
+
+Alternatively, configure PostgreSQL with individual variables:
 
     DB_ENGINE=postgresql
     DB_NAME=nema_dss
@@ -151,4 +166,3 @@ The frontend follows the supplied reference: purple header/sidebar, NEMA brandin
 - `/users/`
 - `/models/`
 - `/django-admin/`
-

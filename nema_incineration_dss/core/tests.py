@@ -1,14 +1,39 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+
+from nema_dss.settings import get_allowed_hosts
 
 from .forms import MAX_UPLOAD_SIZE, UploadDatasetForm
 from .ml import read_dataset
 from .models import AuditEvent, UserProfile, Workflow
+
+
+class VercelAllowedHostsTests(SimpleTestCase):
+    def test_vercel_deployment_hosts_are_allowed(self):
+        with patch.dict(
+            "os.environ",
+            {
+                "ALLOWED_HOSTS": "localhost",
+                "VERCEL_URL": "nema-system-preview.vercel.app",
+                "VERCEL_PROJECT_PRODUCTION_URL": "nema-system.vercel.app",
+                "VERCEL_BRANCH_URL": "nema-system-git-main.vercel.app",
+            },
+        ):
+            self.assertEqual(
+                get_allowed_hosts(),
+                [
+                    "localhost",
+                    "nema-system-preview.vercel.app",
+                    "nema-system.vercel.app",
+                    "nema-system-git-main.vercel.app",
+                ],
+            )
 
 
 class LoginAndNavigationTests(TestCase):
