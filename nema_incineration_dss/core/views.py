@@ -1,5 +1,7 @@
 import io
 import json
+import logging
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -14,6 +16,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db.models import Count
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -39,6 +42,23 @@ from .models import (
     Workflow,
     AuditEvent,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def save_chart(fig, prediction_id):
+    buffer = io.BytesIO()
+    try:
+        fig.savefig(buffer, format="png", dpi=150)
+    finally:
+        plt.close(fig)
+    buffer.seek(0)
+    key = default_storage.save(
+        f"charts/prediction_{prediction_id}/{uuid.uuid4().hex}.png",
+        ContentFile(buffer.getvalue()),
+    )
+    return key
+
 
 def ensure_profile(user):
     profile, _ = UserProfile.objects.get_or_create(
@@ -207,9 +227,17 @@ def upload_dataset(request):
         form = UploadDatasetForm(request.POST, request.FILES)
         if form.is_valid():
             f = form.cleaned_data["file"]
-            obj = Dataset.objects.create(name=f.name, file=f, uploaded_by=request.user)
+            obj = None
             try:
-                df = read_dataset(obj.file.path)
+                if settings.VERCEL and not settings.USE_OBJECT_STORAGE:
+                    raise OSError(
+                        "Persistent upload storage is not configured. "
+                        "Set up Neon Object Storage for this Vercel deployment."
+                    )
+                obj = Dataset.objects.create(
+                    name=f.name, file=f, uploaded_by=request.user
+                )
+                df = read_dataset(obj.file)
                 if len(df.columns) < 2 or len(df) < 5:
                     raise ValueError("Dataset must contain at least two columns and five rows.")
                 validate_dataset_columns(df)
@@ -265,10 +293,12 @@ def upload_dataset(request):
                     )
                 return redirect("data_preview")
             except Exception as exc:
-                if obj.file:
+                logger.exception("Could not process uploaded dataset")
+                if obj and obj.file:
                     obj.file.delete(save=False)
-                obj.delete()
-                messages.error(request, f"Could not read dataset: {exc}")
+                if obj:
+                    obj.delete()
+                messages.error(request, f"Could not process dataset: {exc}")
     else:
         form = UploadDatasetForm()
     return render(request, "upload.html", {"form": form})
@@ -283,7 +313,7 @@ def data_preview(request):
         messages.info(request, "Upload your dataset to continue.")
         return redirect("upload")
     try:
-        df = read_dataset(dataset.file.path)
+        df = read_dataset(dataset.file)
         try:
             validate_dataset_columns(df)
         except ValueError:
@@ -314,7 +344,7 @@ def preprocess(request):
         messages.info(request, "Upload a dataset first.")
         return redirect("upload")
     try:
-        df = read_dataset(dataset.file.path)
+        df = read_dataset(dataset.file)
         before = len(df)
         cleaned = clean_dataset(df)
         missing_before = int(df.isna().sum().sum())
@@ -412,7 +442,7 @@ def predict_settings(request):
     dataset = workflow.dataset
     if not dataset or dataset.uploaded_by_id != request.user.id:
         return redirect("upload")
-    df = read_dataset(dataset.file.path)
+    df = read_dataset(dataset.file)
     cleaned = clean_dataset(df)
     numeric = cleaned.select_dtypes(include=np.number).columns.tolist()
     # Exclude helper timestamp by default, but allow it if the user wants it.
@@ -465,7 +495,7 @@ def prediction_results(request):
             "metrics": prediction.evaluation, "target": prediction.target_column,
             "algorithm": workflow.model.get_algorithm_display(),
         })
-    df = read_dataset(dataset.file.path)
+    df = read_dataset(dataset.file)
     try:
         bundle, metrics, evaluation = train_regressor(
             df,
@@ -539,11 +569,10 @@ def visualize(request):
     if not workflow.dataset or not workflow.model or not prediction:
         messages.warning(request, "Complete a prediction before opening its visualizations.")
         return redirect("prediction_results" if workflow.completed_stage >= 3 else "predict")
-    chart_path = Path(settings.MEDIA_ROOT) / "charts"
-    chart_path.mkdir(parents=True, exist_ok=True)
     evaluation = pd.DataFrame(prediction.prediction_rows)
     chart_urls = []
-    source = clean_dataset(read_dataset(workflow.dataset.file.path))
+    chart_keys = []
+    source = clean_dataset(read_dataset(workflow.dataset.file))
     target_values = pd.to_numeric(source[prediction.target_column], errors="coerce").dropna()
     if not target_values.empty:
         fig, ax = plt.subplots(figsize=(9, 4))
@@ -552,9 +581,9 @@ def visualize(request):
         ax.set_xlabel(prediction.target_column)
         ax.set_ylabel("Record count")
         fig.tight_layout()
-        fig.savefig(chart_path / f"prediction_{prediction.id}_target_distribution.png", dpi=150)
-        plt.close(fig)
-        chart_urls.append(f"{settings.MEDIA_URL}charts/prediction_{prediction.id}_target_distribution.png")
+        chart_key = save_chart(fig, prediction.id)
+        chart_keys.append(chart_key)
+        chart_urls.append(default_storage.url(chart_key))
     if not evaluation.empty and {"actual", "predicted"}.issubset(evaluation.columns):
         fig, ax = plt.subplots(figsize=(9, 4))
         ax.plot(evaluation.index, evaluation["actual"], label="Actual")
@@ -564,12 +593,13 @@ def visualize(request):
         ax.set_ylabel(prediction.target_column)
         ax.legend()
         fig.tight_layout()
-        fig.savefig(chart_path / f"prediction_{prediction.id}_actual_vs_predicted.png", dpi=150)
-        plt.close(fig)
-        chart_urls.append(f"{settings.MEDIA_URL}charts/prediction_{prediction.id}_actual_vs_predicted.png")
+        chart_key = save_chart(fig, prediction.id)
+        chart_keys.append(chart_key)
+        chart_urls.append(default_storage.url(chart_key))
     if workflow.algorithm == "RANDOM_FOREST" and workflow.model.model_file:
         import joblib
-        bundle = joblib.load(workflow.model.model_file.path)
+        with workflow.model.model_file.open("rb") as model_file:
+            bundle = joblib.load(model_file)
         fitted_model = bundle["model"]
         if hasattr(fitted_model, "feature_importances_"):
             importance = pd.Series(fitted_model.feature_importances_, index=bundle["features"]).sort_values().tail(15)
@@ -578,18 +608,16 @@ def visualize(request):
             ax.set_title("Random Forest Feature Importance")
             ax.set_xlabel("Importance")
             fig.tight_layout()
-            fig.savefig(chart_path / f"prediction_{prediction.id}_feature_importance.png", dpi=150)
-            plt.close(fig)
-            chart_urls.append(f"{settings.MEDIA_URL}charts/prediction_{prediction.id}_feature_importance.png")
+            chart_key = save_chart(fig, prediction.id)
+            chart_keys.append(chart_key)
+            chart_urls.append(default_storage.url(chart_key))
     visualization, _ = Visualization.objects.update_or_create(
         prediction=prediction,
         defaults={
             "dataset": workflow.dataset,
             "model": workflow.model,
             "created_by": request.user,
-            "chart_files": [
-                url.removeprefix(settings.MEDIA_URL) for url in chart_urls
-            ],
+            "chart_files": chart_keys,
         },
     )
     workflow.visualization = visualization
@@ -652,10 +680,7 @@ def generate_report(request):
             "predicted": prediction.predicted_value,
             "actual": prediction.actual_value,
             "prediction_rows": prediction.prediction_rows,
-            "visualizations": [
-                f"charts/prediction_{prediction.id}_actual_vs_predicted.png",
-                f"charts/prediction_{prediction.id}_target_distribution.png",
-            ] + ([f"charts/prediction_{prediction.id}_feature_importance.png"] if model.algorithm == "RANDOM_FOREST" else []),
+            "visualizations": workflow.visualization.chart_files,
             "system": "NEMA Incineration ML Decision Support System",
         },
     )
@@ -733,13 +758,14 @@ def download_pdf(request, report_id):
         c.drawString(20*mm, y, f"Actual: {row.get('actual')}  Predicted: {row.get('predicted')}  Difference: {row.get('difference')}")
         y -= 4*mm
     for image_name in report.content.get("visualizations", []):
-        image_path = Path(settings.MEDIA_ROOT) / image_name
-        if image_path.exists():
+        if default_storage.exists(image_name):
             c.showPage()
             c.setFont("Helvetica-Bold", 12)
             c.drawString(20*mm, height - 20*mm, image_name.rsplit("/", 1)[-1])
             from reportlab.lib.utils import ImageReader
-            c.drawImage(ImageReader(str(image_path)), 20*mm, 35*mm, width=170*mm, height=115*mm, preserveAspectRatio=True, anchor="c")
+            with default_storage.open(image_name, "rb") as image_file:
+                image_data = io.BytesIO(image_file.read())
+            c.drawImage(ImageReader(image_data), 20*mm, 35*mm, width=170*mm, height=115*mm, preserveAspectRatio=True, anchor="c")
     y -= 5*mm
     c.setFont("Helvetica", 9)
     c.drawString(20*mm, 15*mm, "Advisory decision support only. This system does not control incineration equipment.")

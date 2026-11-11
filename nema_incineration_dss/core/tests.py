@@ -10,7 +10,7 @@ from django.urls import reverse
 from nema_dss.settings import get_allowed_hosts
 
 from .forms import MAX_UPLOAD_SIZE, UploadDatasetForm
-from .ml import read_dataset
+from .ml import read_dataset, train_regressor
 from .models import AuditEvent, UserProfile, Workflow
 
 
@@ -38,6 +38,36 @@ class VercelAllowedHostsTests(SimpleTestCase):
                     "nema-system-git-main.vercel.app",
                 ],
             )
+
+
+class DemoDatasetTests(SimpleTestCase):
+    def test_synthetic_dataset_can_train_a_model(self):
+        dataset_path = (
+            Path(__file__).resolve().parent.parent
+            / "data"
+            / "demo_test_dataset.csv"
+        )
+        dataframe = read_dataset(dataset_path)
+
+        self.assertGreaterEqual(len(dataframe), 100)
+        self.assertIn("record_time", dataframe.columns)
+        self.assertIn("co_a", dataframe.columns)
+        self.assertIn("aicsa_071", dataframe.columns)
+        self.assertIn("f051_sp_int", dataframe.columns)
+        self.assertIn("f052_sp_int", dataframe.columns)
+
+        _, metrics, evaluation = train_regressor(
+            dataframe,
+            "co_a",
+            ["aicsa_071", "f051_sp_int", "f052_sp_int"],
+            "RANDOM_FOREST",
+        )
+
+        self.assertEqual(
+            metrics["training_rows"] + metrics["testing_rows"], len(dataframe)
+        )
+        self.assertEqual(len(evaluation), metrics["testing_rows"])
+        self.assertGreaterEqual(metrics["R2"], 0.0)
 
 
 class LoginAndNavigationTests(TestCase):

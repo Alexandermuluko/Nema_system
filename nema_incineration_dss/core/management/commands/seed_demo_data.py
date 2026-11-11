@@ -1,7 +1,9 @@
+import io
+
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 from core.models import UserProfile, Dataset
-from pathlib import Path
 import numpy as np
 import pandas as pd
 
@@ -27,10 +29,8 @@ class Command(BaseCommand):
         data["hcl_a"] = np.abs(rng.normal(8, 2, n))
         data["hf_a"] = np.abs(rng.normal(3, 1, n))
         df = pd.DataFrame(data)
-        out = Path("media/datasets")
-        out.mkdir(parents=True, exist_ok=True)
-        path = out / "demo_output.csv"
-        df.to_csv(path, index=False)
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
         u, created = User.objects.get_or_create(username="officer")
         if created:
             u.set_password("officer123")
@@ -38,10 +38,15 @@ class Command(BaseCommand):
         UserProfile.objects.get_or_create(
             user=u, defaults={"role": UserProfile.ROLE_OFFICER}
         )
-        Dataset.objects.create(
-            name="demo_output.csv", file=f"datasets/demo_output.csv",
+        dataset = Dataset(
+            name="demo_output.csv",
             uploaded_by=u, row_count=n, column_count=len(df.columns),
             columns=list(df.columns), preview=df.head(5).to_dict(orient="records")
+        )
+        dataset.file.save(
+            "demo_output.csv",
+            ContentFile(csv_buffer.getvalue().encode("utf-8")),
+            save=True,
         )
         self.stdout.write(self.style.SUCCESS(
             "Synthetic demo dataset created. Login: officer / officer123"

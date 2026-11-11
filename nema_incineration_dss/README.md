@@ -30,6 +30,21 @@ For a complete local demonstration without the supplied dataset, run:
 
 This generates synthetic records only for software testing.
 
+### End-to-end test dataset
+
+`data/demo_test_dataset.csv` is a small, deterministic, synthetic CSV that can
+be uploaded through the normal officer workflow to demonstrate preview,
+preprocessing, prediction, visualization, and report generation. Sign in as an
+Environmental Officer, upload this CSV, then complete each workflow step. It
+contains 120 records and the configured process-tag headers expected by the
+upload validator.
+
+These are fabricated software-test values, not NEMA records, certified
+measurements, or operational guidance. Do not use them to evaluate or control
+incineration equipment. Uploading the CSV exercises the application's model
+training flow; it does not change or retrain any model until the prediction
+step is submitted.
+
 ## Quick start
 
 1. Create and activate a virtual environment.
@@ -76,9 +91,10 @@ When `DATABASE_URL` is set, it takes precedence over `DB_ENGINE` and the
 individual `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, and `DB_PORT`
 settings. Keep the URL secret; do not commit `.env`.
 
-For Vercel deployments, Django adds the deployment, project, and branch
-hostnames supplied by Vercel to `ALLOWED_HOSTS`. Set
-`CSRF_TRUSTED_ORIGINS` in Vercel to the site's full HTTPS origin, for example
+For Vercel deployments, Django detects Vercel's deployment environment and
+disables debug pages by default. It also adds deployment, project, and branch
+hostnames supplied by Vercel to `ALLOWED_HOSTS`. Set `CSRF_TRUSTED_ORIGINS` in
+Vercel to the site's full HTTPS origin, for example
 `https://nema-system.vercel.app`, so sign-in and other POST requests pass
 Django's CSRF checks.
 
@@ -98,6 +114,29 @@ Then:
     python manage.py runserver
 
 The `database/schema.sql` file is provided as a reference/initialisation script for the application tables. Django migrations remain the authoritative schema mechanism.
+
+## Persistent uploads on Vercel
+
+Vercel's application directory is read-only. Do not use the local
+`FileSystemStorage` for uploaded files in a Vercel deployment. Provision the
+`nema-dss-files` bucket on the Neon branch used by the app, then set these
+environment variables for the Vercel deployment (Production, Preview, and
+Development as needed):
+
+    AWS_ACCESS_KEY_ID=<Neon storage credential>
+    AWS_SECRET_ACCESS_KEY=<Neon storage secret>
+    AWS_ENDPOINT_URL_S3=<Neon S3 endpoint>
+    AWS_REGION=<Neon storage region>
+    AWS_STORAGE_BUCKET_NAME=nema-dss-files
+    DEBUG=False
+
+Use the S3-compatible endpoint and credentials from Neon Object Storage; do
+not use the Postgres `DATABASE_URL` as storage credentials. Redeploy after
+adding or changing environment variables. Without these settings, the app
+rejects uploads with a configuration message rather than attempting to write
+to Vercel's read-only application directory. Vercel's function request-size
+limits may also prevent uploads near the app's 200 MB UI limit; large files
+need a direct-to-object-storage upload flow.
 
 ## CSV upload
 

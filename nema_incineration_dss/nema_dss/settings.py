@@ -6,8 +6,13 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+VERCEL = any(
+    os.getenv(variable)
+    for variable in ("VERCEL", "VERCEL_ENV", "VERCEL_URL")
+)
+
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+DEBUG = os.getenv("DEBUG", "False" if VERCEL else "True").lower() == "true"
 
 
 def get_allowed_hosts():
@@ -118,6 +123,33 @@ elif DB_ENGINE == "sqlite":
 else:
     raise ValueError("DB_ENGINE must be either 'sqlite' or 'postgresql'.")
 
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+AWS_ENDPOINT_URL_S3 = os.getenv("AWS_ENDPOINT_URL_S3", "")
+AWS_REGION = os.getenv("AWS_REGION", "")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "nema-dss-files")
+USE_OBJECT_STORAGE = all(
+    value
+    for value in (
+        AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY,
+        AWS_ENDPOINT_URL_S3,
+        AWS_REGION,
+    )
+)
+STORAGES = {
+    "default": {
+        "BACKEND": (
+            "core.storage.NeonObjectStorage"
+            if USE_OBJECT_STORAGE
+            else "django.core.files.storage.FileSystemStorage"
+        ),
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 AUTH_PASSWORD_VALIDATORS = []
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Africa/Nairobi"
@@ -129,7 +161,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT") or (BASE_DIR / "media"))
+MEDIA_ROOT = Path(
+    os.getenv("MEDIA_ROOT")
+    or ("/tmp/nema-media" if VERCEL else BASE_DIR / "media")
+)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"

@@ -1,5 +1,7 @@
 from pathlib import Path
 import json
+import shutil
+import tempfile
 import joblib
 import numpy as np
 import pandas as pd
@@ -9,14 +11,31 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-def read_dataset(path):
-    path = Path(path)
-    if path.suffix.lower() == ".csv":
+def read_dataset(source):
+    is_path = isinstance(source, (str, Path))
+    name = source if is_path else getattr(source, "name", "")
+    suffix = Path(name).suffix.lower()
+    stream = source
+
+    if not is_path and hasattr(source, "open"):
+        stream = source.open("rb")
+    elif not is_path and hasattr(source, "seek"):
+        source.seek(0)
+
+    if suffix == ".csv":
         try:
-            return pd.read_csv(path)
+            return pd.read_csv(source if is_path else stream)
         except (pd.errors.ParserError, UnicodeDecodeError) as error:
-            return _read_recoverable_nema_csv(path, error)
-    return pd.read_excel(path)
+            if is_path:
+                return _read_recoverable_nema_csv(Path(source), error)
+            with tempfile.NamedTemporaryFile(suffix=".csv") as local_copy:
+                stream.seek(0)
+                shutil.copyfileobj(stream, local_copy)
+                local_copy.flush()
+                return _read_recoverable_nema_csv(
+                    Path(local_copy.name), error
+                )
+    return pd.read_excel(source if is_path else stream)
 
 
 def _read_recoverable_nema_csv(path, original_error):

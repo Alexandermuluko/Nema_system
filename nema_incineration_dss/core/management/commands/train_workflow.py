@@ -49,7 +49,7 @@ class Command(BaseCommand):
             raise CommandError("Upload a dataset before training a model.")
 
         try:
-            frame = read_dataset(dataset.file.path)
+            frame = read_dataset(dataset.file)
         except Exception as exc:
             raise CommandError(f"Could not read the uploaded dataset: {exc}") from exc
 
