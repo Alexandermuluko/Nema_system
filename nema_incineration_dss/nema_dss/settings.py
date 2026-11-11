@@ -12,7 +12,10 @@ VERCEL = any(
 )
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
-DEBUG = os.getenv("DEBUG", "False" if VERCEL else "True").lower() == "true"
+DEBUG = (
+    os.getenv("DEBUG", "False" if VERCEL else "True").lower() == "true"
+    and not VERCEL
+)
 
 
 def get_allowed_hosts():
