@@ -16,26 +16,42 @@ def read_dataset(source):
     name = source if is_path else getattr(source, "name", "")
     suffix = Path(name).suffix.lower()
     stream = source
+    close_stream = False
 
-    if not is_path and hasattr(source, "open"):
-        stream = source.open("rb")
-    elif not is_path and hasattr(source, "seek"):
-        source.seek(0)
+    if not is_path:
+        seekable = getattr(source, "seekable", None)
+        if callable(seekable) and not seekable():
+            try:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    local_path = Path(temp_dir) / f"dataset{suffix}"
+                    with local_path.open("wb") as local_copy:
+                        shutil.copyfileobj(source, local_copy)
+                    return read_dataset(local_path)
+            finally:
+                source.close()
+        if hasattr(source, "open"):
+            stream = source.open("rb")
+            close_stream = True
+        elif hasattr(source, "seek"):
+            source.seek(0)
 
-    if suffix == ".csv":
-        try:
-            return pd.read_csv(source if is_path else stream)
-        except (pd.errors.ParserError, UnicodeDecodeError) as error:
-            if is_path:
-                return _read_recoverable_nema_csv(Path(source), error)
-            with tempfile.NamedTemporaryFile(suffix=".csv") as local_copy:
-                stream.seek(0)
-                shutil.copyfileobj(stream, local_copy)
-                local_copy.flush()
-                return _read_recoverable_nema_csv(
-                    Path(local_copy.name), error
-                )
-    return pd.read_excel(source if is_path else stream)
+    try:
+        if suffix == ".csv":
+            try:
+                return pd.read_csv(source if is_path else stream)
+            except (pd.errors.ParserError, UnicodeDecodeError) as error:
+                if is_path:
+                    return _read_recoverable_nema_csv(Path(source), error)
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    local_path = Path(temp_dir) / "dataset.csv"
+                    with local_path.open("wb") as local_copy:
+                        stream.seek(0)
+                        shutil.copyfileobj(stream, local_copy)
+                    return _read_recoverable_nema_csv(local_path, error)
+        return pd.read_excel(source if is_path else stream)
+    finally:
+        if close_stream:
+            stream.close()
 
 
 def _read_recoverable_nema_csv(path, original_error):

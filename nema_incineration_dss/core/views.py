@@ -1,6 +1,8 @@
 import io
 import json
 import logging
+import shutil
+import tempfile
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -58,6 +60,16 @@ def save_chart(fig, prediction_id):
         ContentFile(buffer.getvalue()),
     )
     return key
+
+
+def load_joblib_file(file_field):
+    import joblib
+
+    with file_field.open("rb") as source:
+        with tempfile.TemporaryFile() as seekable_file:
+            shutil.copyfileobj(source, seekable_file)
+            seekable_file.seek(0)
+            return joblib.load(seekable_file)
 
 
 def ensure_profile(user):
@@ -597,9 +609,7 @@ def visualize(request):
         chart_keys.append(chart_key)
         chart_urls.append(default_storage.url(chart_key))
     if workflow.algorithm == "RANDOM_FOREST" and workflow.model.model_file:
-        import joblib
-        with workflow.model.model_file.open("rb") as model_file:
-            bundle = joblib.load(model_file)
+        bundle = load_joblib_file(workflow.model.model_file)
         fitted_model = bundle["model"]
         if hasattr(fitted_model, "feature_importances_"):
             importance = pd.Series(fitted_model.feature_importances_, index=bundle["features"]).sort_values().tail(15)

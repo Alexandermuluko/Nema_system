@@ -1,17 +1,28 @@
+import io
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.core.files.base import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+import pandas as pd
 
 from nema_dss.settings import get_allowed_hosts
 
 from .forms import MAX_UPLOAD_SIZE, UploadDatasetForm
 from .ml import read_dataset, train_regressor
 from .models import AuditEvent, UserProfile, Workflow
+
+
+class NonSeekableStream(io.BytesIO):
+    def seekable(self):
+        return False
+
+    def seek(self, *args, **kwargs):
+        raise io.UnsupportedOperation("stream is not seekable")
 
 
 class VercelAllowedHostsTests(SimpleTestCase):
@@ -41,6 +52,67 @@ class VercelAllowedHostsTests(SimpleTestCase):
 
 
 class DemoDatasetTests(SimpleTestCase):
+    def test_loads_joblib_file_from_non_seekable_storage_stream(self):
+        import io
+        import joblib
+        from django.core.files.base import File
+        from .views import load_joblib_file
+
+        class NonSeekableModelStream(io.BytesIO):
+            def seekable(self):
+                return False
+
+            def seek(self, *args, **kwargs):
+                raise io.UnsupportedOperation("stream is not seekable")
+
+        stored = io.BytesIO()
+        joblib.dump({"model": "loaded"}, stored)
+
+        class NonSeekableModelFile:
+            def open(self, mode):
+                return File(
+                    NonSeekableModelStream(stored.getvalue()),
+                    name="model.joblib",
+                )
+
+        bundle = load_joblib_file(NonSeekableModelFile())
+
+        self.assertEqual(bundle, {"model": "loaded"})
+
+    def test_reads_csv_from_non_seekable_storage_stream(self):
+        content = (
+            b"record_time,co_a,hcl_a\n"
+            b"2024-01-01 00:00:00,1,2\n"
+            b"2024-01-01 00:05:00,2,3\n"
+            b"2024-01-01 00:10:00,3,4\n"
+            b"2024-01-01 00:15:00,4,5\n"
+            b"2024-01-01 00:20:00,5,6\n"
+        )
+        source = File(NonSeekableStream(content), name="dataset.csv")
+
+        dataframe = read_dataset(source)
+
+        self.assertEqual(len(dataframe), 5)
+        self.assertEqual(list(dataframe.columns), ["record_time", "co_a", "hcl_a"])
+
+    def test_reads_excel_from_non_seekable_storage_stream(self):
+        workbook = io.BytesIO()
+        pd.DataFrame(
+            {
+                "record_time": ["2024-01-01 00:00:00"],
+                "co_a": [1.0],
+                "hcl_a": [2.0],
+            }
+        ).to_excel(workbook, index=False)
+        source = File(
+            NonSeekableStream(workbook.getvalue()), name="dataset.xlsx"
+        )
+
+        dataframe = read_dataset(source)
+
+        self.assertEqual(len(dataframe), 1)
+        self.assertEqual(list(dataframe.columns), ["record_time", "co_a", "hcl_a"])
+
     def test_synthetic_dataset_can_train_a_model(self):
         dataset_path = (
             Path(__file__).resolve().parent.parent
